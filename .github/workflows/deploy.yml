@@ -11,6 +11,13 @@ jobs:
 
     env:
       NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRE: ${{ secrets.JWT_EXPIRE }}
+      STORE_NAME: ${{ secrets.STORE_NAME }}
+      STORE_CURRENCY: ${{ secrets.STORE_CURRENCY }}
+      STORE_TAX_RATE: ${{ secrets.STORE_TAX_RATE }}
 
     steps:
       - name: Checkout code
@@ -35,6 +42,17 @@ jobs:
           mkdir -p deploy/.next
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
+          {
+            echo "NODE_ENV=production"
+            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+            echo "MONGODB_URI=${MONGODB_URI}"
+            echo "MONGODB_DB_NAME=${MONGODB_DB_NAME}"
+            echo "JWT_SECRET=${JWT_SECRET}"
+            echo "JWT_EXPIRE=${JWT_EXPIRE}"
+            echo "STORE_NAME=${STORE_NAME}"
+            echo "STORE_CURRENCY=${STORE_CURRENCY}"
+            echo "STORE_TAX_RATE=${STORE_TAX_RATE}"
+          } > deploy/.env.production
 
       - name: Upload to Webuzo by FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
