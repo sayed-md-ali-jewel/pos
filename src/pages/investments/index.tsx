@@ -8,7 +8,6 @@ import {
   Calendar,
   DollarSign,
   AlertTriangle,
-  Clock,
   BarChart2,
   Phone,
   AlertCircle,
@@ -562,7 +561,6 @@ function InvestmentModal({ open, onClose, onSuccess, editTarget }: InvestmentMod
 function InvestmentsContent() {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [monthExpenses, setMonthExpenses] = useState(0);
-  const [pendingDue, setPendingDue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Investment | null>(null);
@@ -570,35 +568,33 @@ function InvestmentsContent() {
   const fetchInvestments = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const [investmentsRes, earningsRes] = await Promise.all([
+      const currentDate = new Date();
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const formatDateParam = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const [investmentsRes, expensesRes] = await Promise.all([
         axios.get('/api/investments', {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get('/api/earnings', {
+        axios.get('/api/expenses', {
           headers: { Authorization: `Bearer ${token}` },
+          params: {
+            startDate: formatDateParam(monthStart),
+            endDate: formatDateParam(monthEnd),
+            limit: 1,
+          },
         }),
       ]);
 
       setInvestments(investmentsRes.data || []);
 
-      const earnings: Array<{ month: string; expenses: number; netProfit: number }> =
-        earningsRes.data || [];
-      const currentDate = new Date();
-      const currentMonthExpenses = earnings.reduce((sum, earning) => {
-        const monthDate = new Date(earning.month);
-        return monthDate.getFullYear() === currentDate.getFullYear() &&
-          monthDate.getMonth() === currentDate.getMonth()
-          ? sum + (earning.expenses || 0)
-          : sum;
-      }, 0);
-
-      const totalPendingDue = (investmentsRes.data || []).reduce(
-        (sum: number, inv: Investment) => sum + Math.max(0, inv.totalProfit ?? 0),
-        0
-      );
-
-      setMonthExpenses(currentMonthExpenses);
-      setPendingDue(totalPendingDue);
+      setMonthExpenses(Number(expensesRes.data?.data?.summary?.totalAmount || 0));
     } catch {
       toast.error('Failed to fetch investments');
     } finally {
@@ -719,17 +715,6 @@ function InvestmentsContent() {
           {stats.map((s) => (
             <StatCard key={s.label} {...s} />
           ))}
-          {/* Total Due */}
-          <div className="mt-4">
-            <StatCard
-              label="Total Due"
-              value={formatCurrency(pendingDue)}
-              sub="Pending investor payments"
-              icon={<Clock size={20} />}
-              iconBg="#ffedd5"
-              iconColor="#ea580c"
-            />
-          </div>
         </div>
 
         {/* Investment cards */}
