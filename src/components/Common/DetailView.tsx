@@ -1,13 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  BarChart3,
-  ClipboardList,
-  FileSearch,
-  LucideIcon,
-  Printer,
-} from 'lucide-react';
+import { ArrowLeft, BarChart3, ClipboardList, FileSearch, LucideIcon, Printer } from 'lucide-react';
 
 type Tone = 'slate' | 'sky' | 'emerald' | 'amber' | 'rose' | 'indigo' | 'violet';
 
@@ -74,7 +67,9 @@ export function EmptyState({
         <Icon size={20} />
       </div>
       <p className="mt-3 text-sm font-bold text-slate-700">{title}</p>
-      {description && <p className="mt-1 max-w-md text-xs font-medium text-slate-400">{description}</p>}
+      {description && (
+        <p className="mt-1 max-w-md text-xs font-medium text-slate-400">{description}</p>
+      )}
     </div>
   );
 }
@@ -208,7 +203,11 @@ export function ProfileHero({
               {badges}
             </div>
             {subtitle && <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>}
-            {meta && <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">{meta}</div>}
+            {meta && (
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
+                {meta}
+              </div>
+            )}
           </div>
         </div>
         {actions && <div className="flex flex-wrap gap-2 lg:justify-end">{actions}</div>}
@@ -265,7 +264,9 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50 ${className}`}>
+    <section
+      className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50 ${className}`}
+    >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           {Icon && (
@@ -275,7 +276,9 @@ export function SectionCard({
           )}
           <div>
             <h2 className="text-base font-extrabold text-slate-950">{title}</h2>
-            {description && <p className="mt-0.5 text-sm font-medium text-slate-500">{description}</p>}
+            {description && (
+              <p className="mt-0.5 text-sm font-medium text-slate-500">{description}</p>
+            )}
           </div>
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -297,8 +300,12 @@ export function InfoGrid({
           key={item.label}
           className={`rounded-lg bg-slate-50 px-4 py-3 ring-1 ring-slate-100 ${item.wide ? 'sm:col-span-2' : ''}`}
         >
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
-          <div className="mt-1 break-words text-sm font-bold text-slate-800">{item.value || '—'}</div>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            {item.label}
+          </p>
+          <div className="mt-1 break-words text-sm font-bold text-slate-800">
+            {item.value || '—'}
+          </div>
         </div>
       ))}
     </div>
