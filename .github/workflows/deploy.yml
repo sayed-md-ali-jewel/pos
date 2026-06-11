@@ -53,6 +53,10 @@ jobs:
             echo "STORE_CURRENCY=${STORE_CURRENCY}"
             echo "STORE_TAX_RATE=${STORE_TAX_RATE}"
           } > deploy/.env.production
+          {
+            echo "process.env.PORT = process.env.PORT || '30153';"
+            echo "require('./server.js');"
+          } > deploy/start.js
 
       - name: Upload to Webuzo by FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
