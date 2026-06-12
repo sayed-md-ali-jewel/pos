@@ -42,6 +42,7 @@ jobs:
           mkdir -p deploy/.next
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
+          node -e "const fs=require('fs');const p='deploy/package.json';const pkg=JSON.parse(fs.readFileSync(p,'utf8'));pkg.scripts={start:'node server.js'};fs.writeFileSync(p, JSON.stringify(pkg,null,2)+'\n');"
           {
             echo "NODE_ENV=production"
             echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
@@ -53,6 +54,7 @@ jobs:
             echo "STORE_CURRENCY=${STORE_CURRENCY}"
             echo "STORE_TAX_RATE=${STORE_TAX_RATE}"
           } > deploy/.env.production
+          cp deploy/.env.production deploy/.env
 
       - name: Upload to Webuzo by FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
