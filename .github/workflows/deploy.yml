@@ -34,14 +34,14 @@ jobs:
 
       - name: Validate deploy secrets
         run: |
-          test -n "$NEXT_PUBLIC_API_URL"
-          test -n "$MONGODB_URI"
-          test -n "$MONGODB_DB_NAME"
-          test -n "$JWT_SECRET"
-          test -n "$JWT_EXPIRE"
-          test -n "$STORE_NAME"
-          test -n "$STORE_CURRENCY"
-          test -n "$STORE_TAX_RATE"
+          missing=0
+          for name in NEXT_PUBLIC_API_URL MONGODB_URI MONGODB_DB_NAME JWT_SECRET JWT_EXPIRE STORE_NAME STORE_CURRENCY STORE_TAX_RATE; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
 
       - name: Build Next.js
         run: npm run build
