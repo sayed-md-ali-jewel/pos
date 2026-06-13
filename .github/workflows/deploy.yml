@@ -35,7 +35,7 @@ jobs:
       - name: Validate deploy secrets
         run: |
           missing=0
-          for name in NEXT_PUBLIC_API_URL MONGODB_URI MONGODB_DB_NAME JWT_SECRET JWT_EXPIRE STORE_NAME STORE_CURRENCY STORE_TAX_RATE; do
+          for name in NEXT_PUBLIC_API_URL MONGODB_URI MONGODB_DB_NAME JWT_SECRET STORE_NAME STORE_CURRENCY STORE_TAX_RATE; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
@@ -60,7 +60,7 @@ jobs:
             echo "MONGODB_URI=${MONGODB_URI}"
             echo "MONGODB_DB_NAME=${MONGODB_DB_NAME}"
             echo "JWT_SECRET=${JWT_SECRET}"
-            echo "JWT_EXPIRE=${JWT_EXPIRE}"
+            echo "JWT_EXPIRE=${JWT_EXPIRE:-7d}"
             echo "STORE_NAME=${STORE_NAME}"
             echo "STORE_CURRENCY=${STORE_CURRENCY}"
             echo "STORE_TAX_RATE=${STORE_TAX_RATE}"
