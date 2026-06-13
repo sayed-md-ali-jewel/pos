@@ -18,6 +18,9 @@ jobs:
       STORE_NAME: ${{ secrets.STORE_NAME }}
       STORE_CURRENCY: ${{ secrets.STORE_CURRENCY }}
       STORE_TAX_RATE: ${{ secrets.STORE_TAX_RATE }}
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 
     steps:
       - name: Checkout code
@@ -35,7 +38,7 @@ jobs:
       - name: Validate deploy secrets
         run: |
           missing=0
-          for name in NEXT_PUBLIC_API_URL MONGODB_URI MONGODB_DB_NAME JWT_SECRET STORE_NAME STORE_CURRENCY STORE_TAX_RATE; do
+          for name in NEXT_PUBLIC_API_URL MONGODB_URI MONGODB_DB_NAME JWT_SECRET STORE_NAME STORE_CURRENCY STORE_TAX_RATE FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
@@ -49,13 +52,19 @@ jobs:
       - name: Prepare deploy folder
         run: |
           mkdir deploy
-          cp -r .next/standalone/* deploy/
+          cp -a .next/standalone/. deploy/
           mkdir -p deploy/.next
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
-          node -e "const fs=require('fs');const p='deploy/package.json';const pkg=JSON.parse(fs.readFileSync(p,'utf8'));pkg.scripts={start:'node server.js'};fs.writeFileSync(p, JSON.stringify(pkg,null,2)+'\n');"
+          rm -rf deploy/.git deploy/.github deploy/.env.local deploy/.env.example
+          mkdir -p deploy/tmp
+          touch deploy/tmp/restart.txt
+          node -e "const fs=require('fs');const p='deploy/server.js';let s=fs.readFileSync(p,'utf8');s=s.replace(\"process.env.HOSTNAME || '0.0.0.0'\", \"process.env.HOSTNAME || '127.0.0.1'\");fs.writeFileSync(p,s);"
+          cp deploy/server.js deploy/app.js
+          node -e "const fs=require('fs');const p='deploy/package.json';const pkg=JSON.parse(fs.readFileSync(p,'utf8'));pkg.scripts={start:'node server.js'};pkg.main='server.js';pkg.engines={node:'20.x'};fs.writeFileSync(p, JSON.stringify(pkg,null,2)+'\n');"
           {
             echo "NODE_ENV=production"
+            echo "HOSTNAME=127.0.0.1"
             echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
             echo "MONGODB_URI=${MONGODB_URI}"
             echo "MONGODB_DB_NAME=${MONGODB_DB_NAME}"
