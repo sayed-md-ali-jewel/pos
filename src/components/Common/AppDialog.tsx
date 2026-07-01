@@ -9,12 +9,10 @@ interface ConfirmOptions {
   cancelText?: string;
   variant?: DialogVariant;
 }
-
 interface PromptOptions extends ConfirmOptions {
   defaultValue?: string;
   placeholder?: string;
 }
-
 interface DialogContextValue {
   confirm: (options: ConfirmOptions | string) => Promise<boolean>;
   prompt: (options: PromptOptions | string) => Promise<string | null>;
