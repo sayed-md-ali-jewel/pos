@@ -9,6 +9,16 @@ import { checkLoginLimit, resetLoginLimit } from '@/middleware/rateLimiter';
 import logger from '@/utils/logger';
 import { ApiResponse } from '@/types';
 
+const isDatabaseConnectionError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes('Password contains unescaped characters') ||
+    message.includes('MongoParseError') ||
+    message.includes('Database connection failed')
+  );
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse>) {
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -65,7 +75,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(statusCode).json(response);
   } catch (error) {
     logger.error({ err: error }, 'Login error');
-    const { response, statusCode } = errorResponse('Login failed', formatErrorMessage(error));
+
+    const { response, statusCode } = isDatabaseConnectionError(error)
+      ? errorResponse('Login failed', 'Database connection is not configured correctly')
+      : errorResponse('Login failed', formatErrorMessage(error));
+
     return res.status(statusCode).json(response);
   }
 }
