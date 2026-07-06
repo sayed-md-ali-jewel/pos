@@ -9,9 +9,9 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     useAuthStore.getState().loadFromStorage();
 
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
-        console.error('Service worker registration failed:', error);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
       });
     }
   }, []);
