@@ -37,8 +37,6 @@ async function handleGetTransfers(req: NextApiRequest, res: NextApiResponse<ApiR
   const skip = (Number(page) - 1) * Number(limit);
 
   const transfers = await StockTransfer.find(query)
-    .populate('fromBranchId', 'name code')
-    .populate('toBranchId', 'name code')
     .populate('productId', 'name sku barcode')
     .populate('performedBy', 'firstName lastName')
     .skip(skip)
@@ -172,7 +170,7 @@ async function handleCreateTransfer(req: AuthenticatedRequest, res: NextApiRespo
       performedBy: req.userId,
     });
 
-    const populatedTransfer = await transfer.populate('fromBranchId toBranchId productId');
+    const populatedTransfer = await transfer.populate('productId');
     const { response, statusCode } = successResponse(
       'Stock transferred successfully',
       populatedTransfer,

@@ -10,7 +10,6 @@ const saleSchema = new mongoose.Schema(
     },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Branch',
       index: true,
     },
     customerId: {

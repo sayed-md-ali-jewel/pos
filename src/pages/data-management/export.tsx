@@ -20,7 +20,6 @@ const MODULE_OPTIONS = [
   'categories',
   'brands',
   'subcategories',
-  'branches',
 ];
 
 const FORMAT_OPTIONS = ['json', 'csv'] as const;

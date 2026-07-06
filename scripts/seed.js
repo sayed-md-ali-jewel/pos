@@ -42,25 +42,13 @@ const defineModels = () => {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
       role: { type: String, enum: ['admin', 'manager', 'cashier'], default: 'cashier' },
-      branchId: { type: objectId, ref: 'Branch' },
+      branchId: { type: objectId },
       branchRoles: [
         {
-          branchId: { type: objectId, ref: 'Branch', required: true },
+          branchId: { type: objectId, required: true },
           role: { type: String, enum: ['manager', 'cashier'], required: true },
         },
       ],
-      isActive: { type: Boolean, default: true },
-    },
-    { timestamps: true }
-  );
-
-  const branchSchema = new mongoose.Schema(
-    {
-      name: { type: String, required: true, trim: true },
-      code: { type: String, required: true, unique: true, uppercase: true, trim: true },
-      phone: String,
-      address: String,
-      city: String,
       isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
@@ -98,7 +86,7 @@ const defineModels = () => {
   const productSchema = new mongoose.Schema(
     {
       name: { type: String, required: true, trim: true },
-      branchId: { type: objectId, ref: 'Branch', index: true },
+      branchId: { type: objectId, index: true },
       description: String,
       category: { type: objectId, ref: 'Category', required: true },
       subcategory: { type: objectId, ref: 'Subcategory' },
@@ -145,7 +133,7 @@ const defineModels = () => {
   const customerSchema = new mongoose.Schema(
     {
       customerCode: String,
-      branchId: { type: objectId, ref: 'Branch', index: true },
+      branchId: { type: objectId, index: true },
       name: { type: String, required: true, trim: true },
       email: { type: String, sparse: true, lowercase: true },
       phone: { type: String, required: true },
@@ -189,7 +177,7 @@ const defineModels = () => {
   const saleSchema = new mongoose.Schema(
     {
       saleNumber: { type: String, unique: true, required: true },
-      branchId: { type: objectId, ref: 'Branch', index: true },
+      branchId: { type: objectId, index: true },
       customerId: { type: objectId, ref: 'Customer' },
       items: [
         {
@@ -266,7 +254,7 @@ const defineModels = () => {
         enum: ['sale', 'purchase', 'return', 'adjustment', 'transfer_in', 'transfer_out'],
         required: true,
       },
-      branchId: { type: objectId, ref: 'Branch', index: true },
+      branchId: { type: objectId, index: true },
       productId: { type: objectId, ref: 'Product', required: true },
       quantity: { type: Number, required: true },
       previousStock: { type: Number, required: true },
@@ -286,8 +274,8 @@ const defineModels = () => {
   const stockTransferSchema = new mongoose.Schema(
     {
       transferNumber: { type: String, unique: true, required: true },
-      fromBranchId: { type: objectId, ref: 'Branch', required: true },
-      toBranchId: { type: objectId, ref: 'Branch', required: true },
+      fromBranchId: { type: objectId, required: true },
+      toBranchId: { type: objectId, required: true },
       productId: { type: objectId, ref: 'Product', required: true },
       quantity: { type: Number, required: true, min: 1 },
       status: { type: String, enum: ['completed', 'cancelled'], default: 'completed' },
@@ -364,7 +352,6 @@ const defineModels = () => {
 
   return {
     User: mongoose.models.User || mongoose.model('User', userSchema),
-    Branch: mongoose.models.Branch || mongoose.model('Branch', branchSchema),
     Category: mongoose.models.Category || mongoose.model('Category', categorySchema),
     Subcategory: mongoose.models.Subcategory || mongoose.model('Subcategory', subcategorySchema),
     Brand: mongoose.models.Brand || mongoose.model('Brand', brandSchema),
@@ -929,7 +916,6 @@ const CUSTOMERS_DATA = [
 const seed = async () => {
   const {
     User,
-    Branch,
     Category,
     Subcategory,
     Brand,
@@ -948,37 +934,9 @@ const seed = async () => {
 
   console.log('🌱 Starting comprehensive electronics store database seed...\n');
 
-  // ==================== Seed Branches ====================
-  console.log('📍 Seeding branches...');
-  const [mainBranch, outletBranch] = await Promise.all([
-    upsertOne(
-      Branch,
-      { code: 'MAIN' },
-      {
-        name: 'MR Trading Electronics - Main Branch',
-        code: 'MAIN',
-        phone: '+8801711000001',
-        address: 'Gulshan Electronics Market, Plot 10, Dhaka',
-        city: 'Dhaka',
-        isActive: true,
-      }
-    ),
-    upsertOne(
-      Branch,
-      { code: 'OUTLET' },
-      {
-        name: 'MR Trading Electronics - Outlet',
-        code: 'OUTLET',
-        phone: '+8801711000002',
-        address: 'Kawran Bazar Electronics Hub, Dhaka',
-        city: 'Dhaka',
-        isActive: true,
-      }
-    ),
-  ]);
-
   // ==================== Seed Users ====================
   console.log('👥 Seeding users...');
+  const defaultBranchId = new mongoose.Types.ObjectId('64f000000000000000000001');
   const password = await hashPassword('demo123');
   const [adminUser, managerUser, cashierUser] = await Promise.all([
     upsertOne(
@@ -990,11 +948,8 @@ const seed = async () => {
         firstName: 'Admin',
         lastName: 'User',
         role: 'admin',
-        branchId: mainBranch._id,
-        branchRoles: [
-          { branchId: mainBranch._id, role: 'manager' },
-          { branchId: outletBranch._id, role: 'manager' },
-        ],
+        branchId: defaultBranchId,
+        branchRoles: [{ branchId: defaultBranchId, role: 'manager' }],
         isActive: true,
       }
     ),
@@ -1007,8 +962,8 @@ const seed = async () => {
         firstName: 'Manager',
         lastName: 'User',
         role: 'manager',
-        branchId: mainBranch._id,
-        branchRoles: [{ branchId: mainBranch._id, role: 'manager' }],
+        branchId: defaultBranchId,
+        branchRoles: [{ branchId: defaultBranchId, role: 'manager' }],
         isActive: true,
       }
     ),
@@ -1021,8 +976,8 @@ const seed = async () => {
         firstName: 'Cashier',
         lastName: 'User',
         role: 'cashier',
-        branchId: mainBranch._id,
-        branchRoles: [{ branchId: mainBranch._id, role: 'cashier' }],
+        branchId: defaultBranchId,
+        branchRoles: [{ branchId: defaultBranchId, role: 'cashier' }],
         isActive: true,
       }
     ),
@@ -1083,10 +1038,10 @@ const seed = async () => {
     const subcatKey = `${product.subcategory}-${product.category}`;
     products[key] = await upsertOne(
       Product,
-      { sku: product.sku, branchId: mainBranch._id },
+      { sku: product.sku, branchId: defaultBranchId },
       {
         name: product.name,
-        branchId: mainBranch._id,
+        branchId: defaultBranchId,
         category: categories[product.category]._id,
         subcategory: subcategories[subcatKey]._id,
         brand: brands[product.brand]._id,
@@ -1111,10 +1066,10 @@ const seed = async () => {
   for (const cust of CUSTOMERS_DATA) {
     customers[cust.customerCode] = await upsertOne(
       Customer,
-      { customerCode: cust.customerCode, branchId: mainBranch._id },
+      { customerCode: cust.customerCode, branchId: defaultBranchId },
       {
         ...cust,
-        branchId: mainBranch._id,
+        branchId: defaultBranchId,
         lastPurchaseDate: new Date(),
         isActive: true,
       }
@@ -1178,7 +1133,7 @@ const seed = async () => {
   console.log('💰 Seeding sales...');
   const sale1 = makeSale({
     saleNumber: 'INV-ELC-001',
-    branchId: mainBranch._id,
+    branchId: defaultBranchId,
     customerId: customers['CUS-DEALER-001']._id,
     cashierId: cashierUser._id,
     items: [
@@ -1205,7 +1160,7 @@ const seed = async () => {
 
   const sale2 = makeSale({
     saleNumber: 'INV-ELC-002',
-    branchId: mainBranch._id,
+    branchId: defaultBranchId,
     customerId: customers['CUS-HOTEL-001']._id,
     cashierId: managerUser._id,
     items: [
@@ -1240,7 +1195,7 @@ const seed = async () => {
   const movementData = [
     ...purchaseItems.map((item) => ({
       type: 'purchase',
-      branchId: mainBranch._id,
+      branchId: defaultBranchId,
       productId: item.productId,
       quantity: item.quantity,
       previousStock: 0,
@@ -1252,7 +1207,7 @@ const seed = async () => {
     })),
     ...savedSale1.items.map((item) => ({
       type: 'sale',
-      branchId: mainBranch._id,
+      branchId: defaultBranchId,
       productId: item.productId,
       quantity: -item.quantity,
       previousStock: 10,
@@ -1264,7 +1219,7 @@ const seed = async () => {
     })),
     ...savedSale2.items.map((item) => ({
       type: 'sale',
-      branchId: mainBranch._id,
+      branchId: defaultBranchId,
       productId: item.productId,
       quantity: -item.quantity,
       previousStock: 10,
@@ -1342,7 +1297,6 @@ const seed = async () => {
 
   const counts = await Promise.all([
     User.countDocuments(),
-    Branch.countDocuments(),
     Category.countDocuments(),
     Subcategory.countDocuments(),
     Brand.countDocuments(),
@@ -1357,16 +1311,15 @@ const seed = async () => {
   console.log('📊 Database Summary:');
   console.table({
     users: counts[0],
-    branches: counts[1],
-    categories: counts[2],
-    subcategories: counts[3],
-    brands: counts[4],
-    products: counts[5],
-    customers: counts[6],
-    suppliers: counts[7],
-    purchases: counts[8],
-    sales: counts[9],
-    stockMovements: counts[10],
+    categories: counts[1],
+    subcategories: counts[2],
+    brands: counts[3],
+    products: counts[4],
+    customers: counts[5],
+    suppliers: counts[6],
+    purchases: counts[7],
+    sales: counts[8],
+    stockMovements: counts[9],
   });
 
   console.log('\n🔐 Demo Credentials:');

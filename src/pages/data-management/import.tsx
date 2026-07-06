@@ -21,7 +21,6 @@ const MODULE_OPTIONS = [
   'categories',
   'brands',
   'subcategories',
-  'branches',
 ];
 
 const STRATEGIES = ['merge', 'overwrite', 'skip'] as const;

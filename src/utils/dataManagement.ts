@@ -20,7 +20,6 @@ import WarrantyRepairBatch from '@/models/WarrantyRepairBatch';
 import Category from '@/models/Category';
 import Brand from '@/models/Brand';
 import Subcategory from '@/models/Subcategory';
-import Branch from '@/models/Branch';
 import DataBackup from '@/models/DataBackup';
 import DataImport from '@/models/DataImport';
 import DataExport from '@/models/DataExport';
@@ -47,7 +46,6 @@ const SUPPORTED_MODULES: Record<string, Model<any>> = {
   categories: Category,
   brands: Brand,
   subcategories: Subcategory,
-  branches: Branch,
 };
 
 const KEY_MODULES = Object.keys(SUPPORTED_MODULES);
@@ -247,7 +245,6 @@ function determineUniqueFilter(moduleName: string, item: any): Record<string, an
     case 'brands':
     case 'categories':
     case 'subcategories':
-    case 'branches':
       if (item.name) return { name: item.name };
       break;
     case 'sales':

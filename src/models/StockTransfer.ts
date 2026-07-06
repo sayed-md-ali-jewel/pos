@@ -9,12 +9,10 @@ const stockTransferSchema = new mongoose.Schema(
     },
     fromBranchId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Branch',
       required: true,
     },
     toBranchId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Branch',
       required: true,
     },
     productId: {

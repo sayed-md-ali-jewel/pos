@@ -23,7 +23,6 @@ const MODULE_OPTIONS = [
   'categories',
   'brands',
   'subcategories',
-  'branches',
 ];
 const AVAILABLE_MODULES = MODULE_OPTIONS.filter((m) => m !== 'all');
 
@@ -49,7 +48,6 @@ const MODULE_ICONS: Record<string, string> = {
   categories: '🏷',
   brands: '✦',
   subcategories: '◈',
-  branches: '🌿',
 };
 
 const formatBackupDate = (value?: string) => {

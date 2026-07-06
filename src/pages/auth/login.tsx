@@ -128,12 +128,6 @@ export default function Login() {
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
-
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            <p className="font-semibold text-slate-900 dark:text-slate-100">Demo credentials</p>
-            <p className="mt-2">admin@mrtrade.com</p>
-            <p>demo123</p>
-          </div>
         </div>
       </main>
     </div>

@@ -21,7 +21,6 @@ const MODULE_OPTIONS = [
   'categories',
   'brands',
   'subcategories',
-  'branches',
 ];
 const AVAILABLE_MODULES = MODULE_OPTIONS.filter((moduleName) => moduleName !== 'all');
 
