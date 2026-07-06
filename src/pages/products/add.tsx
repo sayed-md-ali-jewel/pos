@@ -106,12 +106,11 @@ function AddProductContent() {
 
         if (res.data.success) {
           setSubcategories(res.data.data.subcategories);
-          // If the previously selected subcategory is not in the new list, clear it
-          if (
-            !res.data.data.subcategories.find((s: Subcategory) => s._id === formData.subcategory)
-          ) {
-            setFormData((prev) => ({ ...prev, subcategory: '' }));
-          }
+          setFormData((prev) =>
+            res.data.data.subcategories.find((s: Subcategory) => s._id === prev.subcategory)
+              ? prev
+              : { ...prev, subcategory: '' }
+          );
         }
       } catch (error) {
         console.error('Failed to load subcategories', error);

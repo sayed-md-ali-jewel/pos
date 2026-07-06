@@ -145,6 +145,8 @@ function AttributesContent() {
   // ── Fetch ───────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
       const [catRes, subRes, brandRes] = await Promise.all([
         axios.get('/api/products/categories', { headers }),
         axios.get('/api/products/subcategories', { headers }),

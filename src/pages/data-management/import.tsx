@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import MainLayout from '@/components/Layout/MainLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,12 +36,9 @@ export default function DataManagementImportPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  const fetchHistory = useCallback(async () => {
     if (!auth.token) return;
-    fetchHistory();
-  }, [auth.token]);
 
-  const fetchHistory = async () => {
     setLoading(true);
     try {
       const response = await axios.get('/api/data-management/import', {
@@ -53,7 +50,11 @@ export default function DataManagementImportPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth.token]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

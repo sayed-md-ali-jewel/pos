@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -72,13 +72,9 @@ function EditProductContent() {
     description: '',
   });
 
-  useEffect(() => {
-    if (id) {
-      fetchInitialData();
-    }
-  }, [id]);
+  const fetchInitialData = useCallback(async () => {
+    if (!id) return;
 
-  const fetchInitialData = async () => {
     try {
       setInitialLoading(true);
       const token = localStorage.getItem('token');
@@ -134,7 +130,11 @@ function EditProductContent() {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   // Dynamic Subcategory fetching on Category change
   useEffect(() => {
@@ -157,12 +157,11 @@ function EditProductContent() {
 
         if (res.data.success) {
           setSubcategories(res.data.data.subcategories);
-          // Only clear if the currently selected subcategory isn't in the new list
-          if (
-            !res.data.data.subcategories.find((s: Subcategory) => s._id === formData.subcategory)
-          ) {
-            setFormData((prev) => ({ ...prev, subcategory: '' }));
-          }
+          setFormData((prev) =>
+            res.data.data.subcategories.find((s: Subcategory) => s._id === prev.subcategory)
+              ? prev
+              : { ...prev, subcategory: '' }
+          );
         }
       } catch (error) {
         console.error('Failed to load subcategories', error);

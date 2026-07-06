@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -52,7 +52,7 @@ export default function WarrantyRequests() {
   const [pages, setPages] = useState(1);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
 
-  const fetchRepairs = async () => {
+  const fetchRepairs = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -71,11 +71,11 @@ export default function WarrantyRequests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, search]);
 
   useEffect(() => {
     fetchRepairs();
-  }, [page, statusFilter, search]);
+  }, [fetchRepairs]);
 
   const statCards = [
     {

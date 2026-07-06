@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -46,17 +46,7 @@ export default function SupplierList() {
   const [saving, setSaving] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, [pagination.page]);
-
-  useEffect(() => {
-    if (isModalOpen) {
-      setTimeout(() => firstInputRef.current?.focus(), 100);
-    }
-  }, [isModalOpen]);
-
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -77,12 +67,25 @@ export default function SupplierList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, search]);
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [fetchSuppliers]);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      setTimeout(() => firstInputRef.current?.focus(), 100);
+    }
+  }, [isModalOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (pagination.page === 1) {
+      fetchSuppliers();
+      return;
+    }
     setPagination((p) => ({ ...p, page: 1 }));
-    fetchSuppliers();
   };
 
   const handleOpenModal = () => {

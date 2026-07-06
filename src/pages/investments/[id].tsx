@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import MainLayout from '@/components/Layout/MainLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -40,13 +40,9 @@ function EditInvestmentForm() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      fetchInvestment();
-    }
-  }, [id]);
+  const fetchInvestment = useCallback(async () => {
+    if (!id) return;
 
-  const fetchInvestment = async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(`/api/investments/${id}`, {
@@ -67,7 +63,11 @@ function EditInvestmentForm() {
     } finally {
       setFetchLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchInvestment();
+  }, [fetchInvestment]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

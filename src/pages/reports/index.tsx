@@ -926,7 +926,7 @@ const buildPDF = (rows: any[], section: string, storeInfo: any = {}): string => 
     }
 
     // ── Data rows ─────────────────────────────────────────────────────────
-    let rowY = COL_HEADER_Y - HEADER_ROW_H;
+    const rowY = COL_HEADER_Y - HEADER_ROW_H;
 
     const MONETARY = [
       'subtotal',

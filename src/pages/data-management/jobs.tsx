@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import MainLayout from '@/components/Layout/MainLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,12 +51,9 @@ export default function DataManagementJobsPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  const fetchJobs = useCallback(async () => {
     if (!auth.token) return;
-    fetchJobs();
-  }, [auth.token]);
 
-  const fetchJobs = async () => {
     setLoading(true);
     try {
       const response = await axios.get('/api/data-management/jobs', {
@@ -68,7 +65,11 @@ export default function DataManagementJobsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth.token]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const handleModuleToggle = (module: string) => {
     if (module === 'all') {

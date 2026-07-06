@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import MainLayout from '@/components/Layout/MainLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -121,13 +121,9 @@ function EarningsContent() {
   const intervalLabel = getIntervalLabel();
   const intervalSubtitle = getIntervalSubtitle();
 
-  useEffect(() => {
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
+  const fetchData = useCallback(async () => {
+    if (!id) return;
 
-  const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
       const [investmentRes, earningsRes] = await Promise.all([
@@ -143,7 +139,11 @@ function EarningsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
