@@ -55,6 +55,8 @@ jobs:
           cp -a .next/standalone/. deploy/
           mkdir -p deploy/.next
           cp -r .next/static deploy/.next/static
+          mkdir -p deploy/_next
+          cp -r .next/static deploy/_next/static
           cp -r public deploy/public
           rm -rf deploy/.git deploy/.github deploy/.env.local deploy/.env.example
           mkdir -p deploy/tmp

@@ -15,6 +15,7 @@ const copyIfExists = (from, to) => {
 };
 
 copyIfExists(path.join(root, '.next', 'static'), path.join(standaloneDir, '.next', 'static'));
+copyIfExists(path.join(root, '.next', 'static'), path.join(standaloneDir, '_next', 'static'));
 copyIfExists(path.join(root, 'public'), path.join(standaloneDir, 'public'));
 
 console.log('Standalone assets copied.');
