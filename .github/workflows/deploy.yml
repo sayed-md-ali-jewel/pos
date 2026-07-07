@@ -60,7 +60,7 @@ jobs:
           cp -r public deploy/public
           rm -rf deploy/.git deploy/.github deploy/.env.local deploy/.env.example
           mkdir -p deploy/tmp
-          touch deploy/tmp/restart.txt
+          echo "restarted at $(date -u +%Y-%m-%dT%H:%M:%SZ) - ${GITHUB_SHA}" > deploy/tmp/restart.txt
           node -e "const fs=require('fs');const p='deploy/server.js';let s=fs.readFileSync(p,'utf8');s=s.replace(\"process.env.HOSTNAME || '0.0.0.0'\", \"process.env.HOSTNAME || '127.0.0.1'\");fs.writeFileSync(p,s);"
           cp deploy/server.js deploy/app.js
           node -e "const fs=require('fs');const p='deploy/package.json';const pkg=JSON.parse(fs.readFileSync(p,'utf8'));pkg.scripts={start:'node server.js'};pkg.main='server.js';pkg.engines={node:'20.x'};fs.writeFileSync(p, JSON.stringify(pkg,null,2)+'\n');"
