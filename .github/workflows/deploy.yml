@@ -21,6 +21,8 @@ jobs:
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
+      FTP_PORT: ${{ secrets.FTP_PORT || '21' }}
 
     steps:
       - name: Checkout code
@@ -44,6 +46,10 @@ jobs:
               missing=1
             fi
           done
+          if [ "$FTP_PROTOCOL" != "ftp" ] && [ "$FTP_PROTOCOL" != "ftps" ]; then
+            echo "::error::FTP_PROTOCOL must be either ftp or ftps. Use an SFTP action instead if your server only supports SFTP."
+            missing=1
+          fi
           exit "$missing"
 
       - name: Build Next.js
@@ -84,6 +90,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ env.FTP_PROTOCOL }}
+          port: ${{ env.FTP_PORT }}
           local-dir: ./deploy/
           server-dir: /public_html/
           exclude: |
