@@ -70,6 +70,7 @@ function POSContent() {
   const [walkinName, setWalkinName] = useState('');
   const [walkinPhone, setWalkinPhone] = useState('');
   const [walkinAddress, setWalkinAddress] = useState('');
+  const [saveWalkinCustomer, setSaveWalkinCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [discount, setDiscount] = useState(0);
@@ -195,6 +196,7 @@ function POSContent() {
     setWalkinName('');
     setWalkinPhone('');
     setWalkinAddress('');
+    setSaveWalkinCustomer(false);
     setIsCustomerModalOpen(false);
     setCustomerSearch('');
     toast.success(`${customer.name} selected`);
@@ -202,6 +204,7 @@ function POSContent() {
 
   const setWalkIn = () => {
     setSelectedCustomer(null);
+    setSaveWalkinCustomer(false);
     setIsCustomerModalOpen(false);
     toast.success('Sale switched to walk-in (no customer)');
   };
@@ -306,6 +309,45 @@ function POSContent() {
       const trimmedWalkinName = walkinName.trim();
       const trimmedWalkinPhone = walkinPhone.trim();
       const trimmedWalkinAddress = walkinAddress.trim();
+
+      if (!selectedCustomer && saveWalkinCustomer) {
+        if (!navigator.onLine) {
+          toast.error('Connect to the internet to save a walk-in customer');
+          return;
+        }
+        if (trimmedWalkinName.length < 2) {
+          toast.error('Enter a customer name to save this walk-in');
+          return;
+        }
+        if (trimmedWalkinPhone.length < 10) {
+          toast.error('Enter a valid phone number to save this walk-in');
+          return;
+        }
+      }
+
+      let saleCustomerId = selectedCustomer?._id;
+      if (!selectedCustomer && saveWalkinCustomer) {
+        const customerResponse = await axios.post(
+          '/api/customers',
+          {
+            name: trimmedWalkinName,
+            phone: trimmedWalkinPhone,
+            address: trimmedWalkinAddress,
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (customerResponse.data.success) {
+          saleCustomerId = customerResponse.data.data._id;
+        }
+
+        if (!saleCustomerId) {
+          throw new Error('Customer could not be saved');
+        }
+      }
+
       const salePayload = {
         clientSaleId: `pos-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         items: cartStore.items,
@@ -317,12 +359,11 @@ function POSContent() {
         total,
         paymentMethod,
         paidAmount: Number(paidAmount) || total,
-        customerId: selectedCustomer?._id ?? undefined,
-        walkinCustomerName: !selectedCustomer && trimmedWalkinName ? trimmedWalkinName : undefined,
-        walkinCustomerPhone:
-          !selectedCustomer && trimmedWalkinPhone ? trimmedWalkinPhone : undefined,
+        customerId: saleCustomerId ?? undefined,
+        walkinCustomerName: !saleCustomerId && trimmedWalkinName ? trimmedWalkinName : undefined,
+        walkinCustomerPhone: !saleCustomerId && trimmedWalkinPhone ? trimmedWalkinPhone : undefined,
         walkinCustomerAddress:
-          !selectedCustomer && trimmedWalkinAddress ? trimmedWalkinAddress : undefined,
+          !saleCustomerId && trimmedWalkinAddress ? trimmedWalkinAddress : undefined,
         notes: '',
       };
 
@@ -340,6 +381,7 @@ function POSContent() {
         setWalkinName('');
         setWalkinPhone('');
         setWalkinAddress('');
+        setSaveWalkinCustomer(false);
         setPaymentMethod('cash');
         setIsCheckoutModalOpen(false);
         return;
@@ -358,6 +400,7 @@ function POSContent() {
         setWalkinName('');
         setWalkinPhone('');
         setWalkinAddress('');
+        setSaveWalkinCustomer(false);
         setPaymentMethod('cash');
         setIsCheckoutModalOpen(false);
 
@@ -366,6 +409,15 @@ function POSContent() {
         router.push(`/sales/receipt/${saleId}`);
       }
     } catch (error: any) {
+      if (!selectedCustomer && saveWalkinCustomer) {
+        toast.error(
+          error.response?.data?.message ||
+            error.response?.data?.error ||
+            'Failed to save walk-in customer'
+        );
+        return;
+      }
+
       if (!navigator.onLine || !error.response) {
         const token = localStorage.getItem('token');
         const trimmedWalkinName = walkinName.trim();
@@ -403,6 +455,7 @@ function POSContent() {
         setWalkinName('');
         setWalkinPhone('');
         setWalkinAddress('');
+        setSaveWalkinCustomer(false);
         setPaymentMethod('cash');
         setIsCheckoutModalOpen(false);
       } else {
@@ -429,7 +482,7 @@ function POSContent() {
     : taxableAmount;
   const change = Number(paidAmount) - total;
   const dueAmount = Math.max(total - Number(paidAmount), 0);
-  const canUsePartialPayment = Boolean(selectedCustomer);
+  const canUsePartialPayment = Boolean(selectedCustomer || saveWalkinCustomer);
 
   const getCategoryName = (category?: Product['category']) => {
     if (!category) return '';
@@ -881,6 +934,7 @@ function POSContent() {
                       setWalkinName('');
                       setWalkinPhone('');
                       setWalkinAddress('');
+                      setSaveWalkinCustomer(false);
                     }
                   }}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -968,13 +1022,13 @@ function POSContent() {
 
       {/* Checkout Modal */}
       {isCheckoutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-4 text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]">
+            <div className="shrink-0 bg-gradient-to-r from-primary-600 to-primary-700 p-4 text-white">
               <h2 className="text-xl font-bold">✓ Complete Sale</h2>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
               <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-4 rounded-xl text-center border border-primary-200">
                 <p className="text-xs text-primary-600 uppercase font-semibold tracking-wide">
                   Total Amount
@@ -1009,6 +1063,20 @@ function POSContent() {
                       onChange={(e) => setWalkinAddress(e.target.value)}
                       className="input-field w-full text-sm"
                     />
+                    <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm font-semibold text-amber-900">
+                      <input
+                        type="checkbox"
+                        checked={saveWalkinCustomer}
+                        onChange={(e) => setSaveWalkinCustomer(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>
+                        Save as customer
+                        <span className="block text-xs font-medium text-amber-700">
+                          Requires name and phone. Partial due will be saved to this customer.
+                        </span>
+                      </span>
+                    </label>
                   </div>
                 )}
 
@@ -1073,7 +1141,7 @@ function POSContent() {
               </div>
             </div>
 
-            <div className="border-t bg-slate-50 p-4 flex gap-3">
+            <div className="flex shrink-0 gap-3 border-t bg-slate-50 p-4">
               <button
                 onClick={() => setIsCheckoutModalOpen(false)}
                 disabled={processing}
