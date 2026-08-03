@@ -8,6 +8,23 @@ import Expense from '@/models/Expense';
 import { authenticate } from '@/middleware/auth';
 import { errorResponse, successResponse, formatErrorMessage } from '@/utils/response';
 import { ApiResponse } from '@/types';
+import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+
+const DASHBOARD_TIMEZONE = process.env.DASHBOARD_TIMEZONE || 'Asia/Dhaka';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const startOfZonedDay = (dateKey: string) =>
+  zonedTimeToUtc(`${dateKey} 00:00:00`, DASHBOARD_TIMEZONE);
+
+const getZonedDateKey = (date: Date) => formatInTimeZone(date, DASHBOARD_TIMEZONE, 'yyyy-MM-dd');
+
+const getZonedMonthKey = (date: Date) => formatInTimeZone(date, DASHBOARD_TIMEZONE, 'yyyy-MM');
+
+const getNextMonthKey = (monthKey: string) => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+  return `${next.year}-${String(next.month).padStart(2, '0')}`;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse>) {
   try {
@@ -23,24 +40,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     const { period = '7', startDate, endDate } = req.query;
 
-    // Calculate date range
-    let start = new Date();
-    let end = new Date();
+    const now = new Date();
+    const todayKey = getZonedDateKey(now);
+    const today = startOfZonedDay(todayKey);
+    const tomorrow = new Date(today.getTime() + DAY_MS);
+
+    // Calculate date range in the dashboard timezone.
+    let start: Date;
+    let end: Date;
 
     if (startDate && endDate) {
-      start = new Date(startDate as string);
-      end = new Date(endDate as string);
-      end.setHours(23, 59, 59, 999);
+      start = startOfZonedDay(startDate as string);
+      end = new Date(startOfZonedDay(endDate as string).getTime() + DAY_MS);
     } else {
       const days = parseInt(period as string) || 7;
-      start.setDate(start.getDate() - days + 1);
-      start.setHours(0, 0, 0, 0);
+      start = new Date(today.getTime() - (days - 1) * DAY_MS);
+      end = tomorrow;
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Sales Today
     const todaySales = await Sale.aggregate([
@@ -105,8 +121,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const periodExpenses = periodExpensesAgg.length > 0 ? periodExpensesAgg[0].totalExpenses : 0;
 
     // Current month expenses for the Month Expenses card
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const monthKey = getZonedMonthKey(now);
+    const monthStart = startOfZonedDay(`${monthKey}-01`);
+    const monthEnd = startOfZonedDay(`${getNextMonthKey(monthKey)}-01`);
     const monthlyExpensesAgg = await Expense.aggregate([
       {
         $match: {
@@ -146,7 +163,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       },
       {
         $group: {
-          _id: { $dateToString: { format: groupBy, date: '$createdAt' } },
+          _id: {
+            $dateToString: {
+              format: groupBy,
+              date: '$createdAt',
+              timezone: DASHBOARD_TIMEZONE,
+            },
+          },
           revenue: { $sum: '$total' },
           sales: { $sum: 1 },
         },
@@ -156,12 +179,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     // Fill in missing periods
     const salesTrend = [];
-    const current = new Date(start);
+    let current =
+      groupBy === '%Y-%m-%d' ? new Date(start) : startOfZonedDay(`${getZonedMonthKey(start)}-01`);
     while (current < end) {
       const periodKey =
-        groupBy === '%Y-%m-%d'
-          ? current.toISOString().split('T')[0]
-          : `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        groupBy === '%Y-%m-%d' ? getZonedDateKey(current) : getZonedMonthKey(current);
 
       const found = salesData.find((ds) => ds._id === periodKey);
       salesTrend.push({
@@ -171,9 +193,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       });
 
       if (groupBy === '%Y-%m-%d') {
-        current.setDate(current.getDate() + 1);
+        current = new Date(current.getTime() + DAY_MS);
       } else {
-        current.setMonth(current.getMonth() + 1);
+        current = startOfZonedDay(`${getNextMonthKey(periodKey)}-01`);
       }
     }
 

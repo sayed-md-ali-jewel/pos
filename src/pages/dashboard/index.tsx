@@ -98,6 +98,20 @@ function DashboardContent() {
 
   const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#ef4444', '#a855f7'];
 
+  const formatTrendDate = (value: string, withYear = false) => {
+    const parts = value.split('-').map(Number);
+    const date =
+      parts.length === 2
+        ? new Date(parts[0], parts[1] - 1, 1)
+        : new Date(parts[0], parts[1] - 1, parts[2]);
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      ...(parts.length === 3 ? { day: 'numeric' as const } : {}),
+      ...(withYear ? { year: 'numeric' as const } : {}),
+    });
+  };
+
   // Custom legend renderer for pie chart
   const renderCustomLegend = () => (
     <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center mt-3">
@@ -244,10 +258,10 @@ function DashboardContent() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Monthly Sales Trend Line Chart — takes 2/3 width */}
+          {/* Sales Trend Line Chart — takes 2/3 width */}
           <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-6">
-              <h2 className="text-base font-bold text-slate-900">Monthly Sales Trend</h2>
+              <h2 className="text-base font-bold text-slate-900">Sales Trend</h2>
               <p className="text-slate-400 text-xs mt-0.5">Sales performance over time</p>
             </div>
             <div className="h-64 w-full">
@@ -259,10 +273,7 @@ function DashboardContent() {
                     tick={{ fontSize: 11, fill: '#94a3b8' }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(str) => {
-                      const date = new Date(str);
-                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }}
+                    tickFormatter={(str) => formatTrendDate(str)}
                   />
                   <YAxis
                     tick={{ fontSize: 11, fill: '#94a3b8' }}
@@ -272,13 +283,7 @@ function DashboardContent() {
                   />
                   <Tooltip
                     formatter={(value: number) => [`৳${value.toFixed(0)}`, 'Revenue']}
-                    labelFormatter={(label) =>
-                      `Date: ${new Date(label).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}`
-                    }
+                    labelFormatter={(label) => `Date: ${formatTrendDate(String(label), true)}`}
                     contentStyle={{
                       backgroundColor: 'white',
                       border: '1px solid #e2e8f0',
