@@ -5,6 +5,7 @@ import Image from 'next/image';
 import MainLayout from '@/components/Layout/MainLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Button, Input, Card } from '@/components/Common/FormElements';
+import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 interface FormData {
@@ -31,7 +32,9 @@ export default function EditCustomerPage() {
 function EditCustomerContent() {
   const router = useRouter();
   const { id } = router.query;
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSuperAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -151,7 +154,11 @@ function EditCustomerContent() {
         payload.avatar = avatarUrl;
       }
 
-      delete payload.dueAmount;
+      if (isSuperAdmin) {
+        payload.dueAmount = payload.dueAmount === '' ? 0 : Number(payload.dueAmount);
+      } else {
+        delete payload.dueAmount;
+      }
       payload.loyaltyPoints = payload.loyaltyPoints === '' ? 0 : Number(payload.loyaltyPoints);
 
       const finalPayload =
@@ -166,7 +173,9 @@ function EditCustomerContent() {
         router.push(`/customers/${id}`);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update customer');
+      toast.error(
+        error.response?.data?.error || error.response?.data?.message || 'Failed to update customer'
+      );
     } finally {
       setLoading(false);
     }
@@ -342,6 +351,19 @@ function EditCustomerContent() {
             <div>
               <h3 className="text-lg font-semibold text-secondary-900 mb-4">Financial</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isSuperAdmin && (
+                  <Input
+                    label="Previous Due"
+                    type="number"
+                    name="dueAmount"
+                    value={formData.dueAmount}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                )}
+
                 <Input
                   label="Loyalty Points"
                   type="number"

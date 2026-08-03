@@ -5,6 +5,7 @@ import Image from 'next/image';
 import MainLayout from '@/components/Layout/MainLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Button, Input, Card } from '@/components/Common/FormElements';
+import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 interface FormData {
@@ -15,6 +16,7 @@ interface FormData {
   city: string;
   gender: string;
   dateOfBirth: string;
+  dueAmount: string;
   notes: string;
 }
 
@@ -28,7 +30,9 @@ export default function AddCustomerPage() {
 
 function AddCustomerContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSuperAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -40,6 +44,7 @@ function AddCustomerContent() {
     city: '',
     gender: '',
     dateOfBirth: '',
+    dueAmount: '0',
     notes: '',
   });
 
@@ -88,6 +93,11 @@ function AddCustomerContent() {
       if (!payload.email) delete payload.email;
       if (!payload.gender) delete payload.gender;
       if (!payload.dateOfBirth) delete payload.dateOfBirth;
+      if (isSuperAdmin) {
+        payload.dueAmount = payload.dueAmount === '' ? 0 : Number(payload.dueAmount);
+      } else {
+        delete payload.dueAmount;
+      }
       if (avatarUrl) payload.avatar = avatarUrl;
 
       const response = await axios.post('/api/customers', payload, {
@@ -99,7 +109,9 @@ function AddCustomerContent() {
         router.push('/customers');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create customer');
+      toast.error(
+        error.response?.data?.error || error.response?.data?.message || 'Failed to create customer'
+      );
     } finally {
       setLoading(false);
     }
@@ -259,6 +271,24 @@ function AddCustomerContent() {
                 />
               </div>
             </div>
+
+            {isSuperAdmin && (
+              <div>
+                <h3 className="text-lg font-semibold text-secondary-900 mb-4">Financial</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Previous Due"
+                    type="number"
+                    name="dueAmount"
+                    value={formData.dueAmount}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Notes */}
             <div>

@@ -263,6 +263,12 @@ async function handleCreateCustomer(req: AuthenticatedRequest, res: NextApiRespo
     if (res.writableEnded) return;
 
     const customerData: any = { ...value };
+    if (req.userRole !== 'admin') {
+      delete customerData.balance;
+      delete customerData.dueAmount;
+    } else if (customerData.dueAmount !== undefined) {
+      customerData.balance = customerData.dueAmount;
+    }
     if (branchId) customerData.branchId = branchId;
 
     const customer = await Customer.create(customerData);
@@ -314,6 +320,12 @@ async function handleUpdateCustomer(
     }
 
     const updateData: any = { ...value };
+    if (req.userRole !== 'admin') {
+      delete updateData.balance;
+      delete updateData.dueAmount;
+    } else if (updateData.dueAmount !== undefined) {
+      updateData.balance = updateData.dueAmount;
+    }
     if (updateData.branchId === '') delete updateData.branchId;
     if (unsetData) {
       updateData.$unset = unsetData;
