@@ -3,6 +3,8 @@ import { validateInput } from './validation';
 
 export { validateInput };
 
+const PRODUCT_DESCRIPTION_MAX_LENGTH = 65536;
+
 export const categorySchema = Joi.object({
   name: Joi.string().required().min(2).max(100).messages({
     'string.empty': 'Category name is required',
@@ -61,7 +63,12 @@ export const productSchema = Joi.object({
     'string.min': 'Product name must be at least 2 characters',
   }),
   branchId: Joi.string().allow(''),
-  description: Joi.string().max(1000).allow(''),
+  description: Joi.string()
+    .max(PRODUCT_DESCRIPTION_MAX_LENGTH)
+    .allow('')
+    .messages({
+      'string.max': `Description length must be ${PRODUCT_DESCRIPTION_MAX_LENGTH} characters or less`,
+    }),
   category: Joi.string().required().messages({
     'string.empty': 'Category is required',
   }),

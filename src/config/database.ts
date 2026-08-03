@@ -1,10 +1,21 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'mr-trading';
+const APP_ENV = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const MONGODB_URI =
+  APP_ENV === 'production'
+    ? process.env.MONGODB_URI_PRODUCTION || process.env.MONGODB_URI
+    : process.env.MONGODB_URI_DEVELOPMENT || process.env.MONGODB_URI;
+const MONGODB_DB_NAME =
+  APP_ENV === 'production'
+    ? process.env.MONGODB_DB_NAME_PRODUCTION || process.env.MONGODB_DB_NAME || 'mr-trading'
+    : process.env.MONGODB_DB_NAME_DEVELOPMENT || process.env.MONGODB_DB_NAME || 'mr-trading';
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
+  throw new Error(
+    `Please define the ${
+      APP_ENV === 'production' ? 'MONGODB_URI_PRODUCTION' : 'MONGODB_URI_DEVELOPMENT'
+    } environment variable`
+  );
 }
 
 const encodeCredentialPart = (value: string): string => {
