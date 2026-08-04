@@ -80,6 +80,9 @@ function ReceiptContent() {
           phone: sale.walkinCustomerPhone,
         }
       : null;
+  const saleTotal = Number(sale.total || 0);
+  const salePaidAmount = Number(sale.paidAmount || 0);
+  const saleDueAmount = Math.max(Number(sale.dueAmount || 0), saleTotal - salePaidAmount, 0);
 
   return (
     <MainLayout title={`Receipt ${sale.saleNumber}`}>
@@ -206,9 +209,23 @@ function ReceiptContent() {
               <span className="text-slate-900 font-semibold">{formatCurrency(sale.tax)}</span>
             </div>
 
+            {saleDueAmount > 0 && (
+              <div className="flex justify-between items-center text-sm bg-red-50 px-3 py-2 rounded border border-red-100">
+                <span className="text-red-700 font-medium">Due Amount:</span>
+                <span className="text-red-700 font-semibold">{formatCurrency(saleDueAmount)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between items-center text-lg font-bold border-t-2 border-slate-300 pt-3 mt-3">
               <span className="text-slate-900">Grand Total:</span>
               <span className="text-primary-600 text-2xl">{formatCurrency(sale.total)}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-700 font-medium">Paid for This Sale:</span>
+              <span className="text-emerald-700 font-semibold">
+                {formatCurrency(salePaidAmount)}
+              </span>
             </div>
           </div>
 
@@ -231,23 +248,21 @@ function ReceiptContent() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-slate-500 text-xs font-semibold uppercase mb-1">Amount Paid</p>
-                <p className="font-semibold text-slate-900">{formatCurrency(sale.paidAmount)}</p>
+                <p className="text-slate-500 text-xs font-semibold uppercase mb-1">
+                  Paid for This Sale
+                </p>
+                <p className="font-semibold text-slate-900">{formatCurrency(salePaidAmount)}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs font-semibold uppercase mb-1">Change Due</p>
-                <p className="font-semibold text-emerald-600">
-                  {formatCurrency(Math.max(0, sale.paidAmount - sale.total))}
+                <p className="text-slate-500 text-xs font-semibold uppercase mb-1">Remaining Due</p>
+                <p
+                  className={`font-semibold ${
+                    saleDueAmount > 0 ? 'text-red-600' : 'text-emerald-600'
+                  }`}
+                >
+                  {formatCurrency(saleDueAmount)}
                 </p>
               </div>
-              {sale.dueAmount > 0 && (
-                <div className="text-right">
-                  <p className="text-slate-500 text-xs font-semibold uppercase mb-1">
-                    Outstanding Balance
-                  </p>
-                  <p className="font-semibold text-red-600">৳{sale.dueAmount.toFixed(2)}</p>
-                </div>
-              )}
             </div>
           </div>
 

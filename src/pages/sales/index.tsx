@@ -47,6 +47,8 @@ interface Customer {
   name: string;
   phone: string;
   balance: number;
+  dueAmount?: number;
+  totalPurchased?: number;
 }
 
 export default function POSPage() {
@@ -202,6 +204,9 @@ function POSContent() {
     toast.success(`${customer.name} selected`);
   };
 
+  const getCustomerDue = (customer?: Customer | null) =>
+    Math.max(Number(customer?.balance ?? 0), Number(customer?.dueAmount ?? 0));
+
   const setWalkIn = () => {
     setSelectedCustomer(null);
     setSaveWalkinCustomer(false);
@@ -348,6 +353,21 @@ function POSContent() {
         }
       }
 
+      const enteredPaidAmount = Number(paidAmount) || 0;
+      const previousDuePaymentAmount =
+        selectedCustomer && existingCustomerDue > 0
+          ? Math.min(Math.max(enteredPaidAmount - total, 0), existingCustomerDue)
+          : 0;
+      const salePaidAmount =
+        selectedCustomer && existingCustomerDue > 0
+          ? Math.min(enteredPaidAmount, total)
+          : enteredPaidAmount;
+
+      if (!navigator.onLine && previousDuePaymentAmount > 0) {
+        toast.error('Connect to the internet to pay previous due with this sale');
+        return;
+      }
+
       const salePayload = {
         clientSaleId: `pos-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         items: cartStore.items,
@@ -358,7 +378,7 @@ function POSContent() {
         taxPercent,
         total,
         paymentMethod,
-        paidAmount: Number(paidAmount) || total,
+        paidAmount: salePaidAmount,
         customerId: saleCustomerId ?? undefined,
         walkinCustomerName: !saleCustomerId && trimmedWalkinName ? trimmedWalkinName : undefined,
         walkinCustomerPhone: !saleCustomerId && trimmedWalkinPhone ? trimmedWalkinPhone : undefined,
@@ -392,6 +412,25 @@ function POSContent() {
       });
 
       if (response.data.success) {
+        if (previousDuePaymentAmount > 0 && selectedCustomer) {
+          try {
+            await axios.post(
+              `/api/customers/${selectedCustomer._id}/pay`,
+              {
+                amount: previousDuePaymentAmount,
+                paymentMethod,
+                note: `Collected with POS sale ${response.data.data.saleNumber || ''}`.trim(),
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (paymentError: any) {
+            toast.error(
+              paymentError.response?.data?.message ||
+                'Sale completed, but previous due payment was not applied'
+            );
+          }
+        }
+
         toast.success('Sale completed successfully');
         cartStore.clearCart();
         setDiscount(0);
@@ -434,7 +473,10 @@ function POSContent() {
             taxPercent,
             total,
             paymentMethod,
-            paidAmount: Number(paidAmount) || total,
+            paidAmount:
+              selectedCustomer && existingCustomerDue > 0
+                ? Math.min(Number(paidAmount) || 0, total)
+                : Number(paidAmount) || 0,
             customerId: selectedCustomer?._id ?? undefined,
             walkinCustomerName:
               !selectedCustomer && trimmedWalkinName ? trimmedWalkinName : undefined,
@@ -480,8 +522,21 @@ function POSContent() {
       ? taxableAmount
       : taxableAmount + tax
     : taxableAmount;
-  const change = Number(paidAmount) - total;
-  const dueAmount = Math.max(total - Number(paidAmount), 0);
+  const existingCustomerDue = getCustomerDue(selectedCustomer);
+  const payableAmount = total + existingCustomerDue;
+  const enteredPaidAmount = Number(paidAmount) || 0;
+  const salePaidAmount =
+    selectedCustomer && existingCustomerDue > 0
+      ? Math.min(enteredPaidAmount, total)
+      : enteredPaidAmount;
+  const dueAmount = Math.max(total - salePaidAmount, 0);
+  const previousDuePaymentAmount =
+    selectedCustomer && existingCustomerDue > 0
+      ? Math.min(Math.max(enteredPaidAmount - total, 0), existingCustomerDue)
+      : 0;
+  const remainingPreviousDue = Math.max(existingCustomerDue - previousDuePaymentAmount, 0);
+  const customerDueAfterPayment = remainingPreviousDue + dueAmount;
+  const change = enteredPaidAmount - (selectedCustomer ? payableAmount : total);
   const canUsePartialPayment = Boolean(selectedCustomer || saveWalkinCustomer);
 
   const getCategoryName = (category?: Product['category']) => {
@@ -714,15 +769,18 @@ function POSContent() {
                         <p className="mt-1 text-xs font-medium text-slate-600">
                           {selectedCustomer.phone}
                         </p>
+                        <p className="mt-2 text-xs font-semibold text-slate-700">
+                          Existing due: {formatCurrency(existingCustomerDue)}
+                        </p>
                       </div>
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                          (selectedCustomer.balance ?? 0) > 0
+                          existingCustomerDue > 0
                             ? 'bg-rose-100 text-rose-700'
                             : 'bg-emerald-100 text-emerald-700'
                         }`}
                       >
-                        {formatCurrency(selectedCustomer.balance ?? 0)}
+                        {formatCurrency(existingCustomerDue)}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -900,6 +958,22 @@ function POSContent() {
                   <span className="text-slate-900">Total</span>
                   <span className="text-sky-600">{formatCurrency(total)}</span>
                 </div>
+                {selectedCustomer && existingCustomerDue > 0 && (
+                  <>
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-sm">
+                      <span className="font-medium text-orange-600">Previous Due</span>
+                      <span className="font-bold text-orange-600">
+                        {formatCurrency(existingCustomerDue)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg bg-orange-50 px-3 py-2 text-sm">
+                      <span className="font-bold text-orange-800">Sale + Due</span>
+                      <span className="text-base font-extrabold text-orange-700">
+                        {formatCurrency(total + existingCustomerDue)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -910,7 +984,7 @@ function POSContent() {
                       toast.error('Cart is empty');
                       return;
                     }
-                    setPaidAmount(total);
+                    setPaidAmount(Number((selectedCustomer ? payableAmount : total).toFixed(2)));
                     setIsCheckoutModalOpen(true);
                   }}
                   disabled={cartStore.items.length === 0}
@@ -998,9 +1072,18 @@ function POSContent() {
                           <div>
                             <p className="font-semibold text-slate-900">{customer.name}</p>
                             <p className="text-xs text-slate-500">{customer.phone}</p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">
+                              Purchased {formatCurrency(customer.totalPurchased ?? 0)}
+                            </p>
                           </div>
-                          <span className="text-xs font-bold text-slate-600">
-                            {formatCurrency(customer.balance)}
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                              getCustomerDue(customer) > 0
+                                ? 'bg-rose-100 text-rose-700'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}
+                          >
+                            Due {formatCurrency(getCustomerDue(customer))}
                           </span>
                         </div>
                       </button>
@@ -1031,12 +1114,62 @@ function POSContent() {
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
               <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-4 rounded-xl text-center border border-primary-200">
                 <p className="text-xs text-primary-600 uppercase font-semibold tracking-wide">
-                  Total Amount
+                  Total Payable
                 </p>
-                <p className="text-4xl font-bold text-primary-700 mt-1">{formatCurrency(total)}</p>
+                <p className="text-4xl font-bold text-primary-700 mt-1">
+                  {formatCurrency(selectedCustomer ? payableAmount : total)}
+                </p>
               </div>
 
               <div className="space-y-4">
+                {selectedCustomer && (
+                  <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-950">{selectedCustomer.name}</p>
+                        <p className="text-xs font-medium text-slate-600">
+                          Previous due {formatCurrency(existingCustomerDue)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2 border-t border-sky-100 pt-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-600">Subtotal</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-600">Sale total</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(total)}</span>
+                      </div>
+                      {existingCustomerDue > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-orange-700">Previous due</span>
+                          <span className="font-bold text-orange-700">
+                            {formatCurrency(existingCustomerDue)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                        <span className="text-xs font-bold uppercase text-primary-700">
+                          Payable now
+                        </span>
+                        <span className="text-base font-extrabold text-primary-700">
+                          {formatCurrency(payableAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!selectedCustomer && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-600">Subtotal</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(subtotal)}</span>
+                    </div>
+                  </div>
+                )}
+
                 {!selectedCustomer && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
                     <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">
@@ -1126,11 +1259,18 @@ function POSContent() {
                     ) : (
                       <>
                         <p className="text-xs">
-                          {canUsePartialPayment ? 'Customer Due' : 'Amount Remaining'}
+                          {canUsePartialPayment ? 'Remaining Due' : 'Amount Remaining'}
                         </p>
-                        <p className="text-2xl">{formatCurrency(dueAmount)}</p>
+                        <p className="text-2xl">
+                          {formatCurrency(selectedCustomer ? customerDueAfterPayment : dueAmount)}
+                        </p>
                       </>
                     )}
+                  </div>
+                )}
+                {selectedCustomer && dueAmount > 0 && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800">
+                    New sale due {formatCurrency(dueAmount)} will be added to this customer.
                   </div>
                 )}
                 {!canUsePartialPayment && change < 0 && (
