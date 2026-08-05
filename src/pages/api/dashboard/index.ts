@@ -97,14 +97,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const pendingOrdersCount = await Sale.countDocuments({ status: 'pending' });
 
     // Total Due
-    const totalDueAgg = await Sale.aggregate([
+    // Customer records hold manually entered previous due plus sale-created due.
+    // Keep sale dues in the calculation as a fallback for older records.
+    const totalDueAgg = await Customer.aggregate([
       {
-        $match: {
-          status: { $in: ['completed', 'pending', 'returned_partial'] },
-          dueAmount: { $gt: 0 },
+        $lookup: {
+          from: 'sales',
+          let: { customerId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$customerId', '$$customerId'] },
+                status: { $in: ['completed', 'pending', 'returned_partial'] },
+                dueAmount: { $gt: 0 },
+              },
+            },
+            { $group: { _id: null, totalDue: { $sum: '$dueAmount' } } },
+          ],
+          as: 'saleDueSummary',
         },
       },
-      { $group: { _id: null, totalDue: { $sum: '$dueAmount' } } },
+      {
+        $project: {
+          normalizedDue: {
+            $max: [
+              { $ifNull: ['$dueAmount', 0] },
+              { $ifNull: ['$balance', 0] },
+              { $ifNull: [{ $arrayElemAt: ['$saleDueSummary.totalDue', 0] }, 0] },
+            ],
+          },
+        },
+      },
+      { $match: { normalizedDue: { $gt: 0 } } },
+      { $group: { _id: null, totalDue: { $sum: '$normalizedDue' } } },
     ]);
     const totalDue = totalDueAgg.length > 0 ? totalDueAgg[0].totalDue : 0;
 
