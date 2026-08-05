@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/config/database';
 import Subcategory from '@/models/Subcategory';
+import Product from '@/models/Product';
 import { authenticate } from '@/middleware/auth';
 import { errorResponse, successResponse, formatErrorMessage } from '@/utils/response';
 import {
@@ -169,6 +170,20 @@ async function handleDeleteSubcategory(req: NextApiRequest, res: NextApiResponse
     const { id } = req.query;
     if (!id) {
       const { response, statusCode } = errorResponse('Subcategory ID is required', undefined, 400);
+      return res.status(statusCode).json(response);
+    }
+
+    const assignedInStockProducts = await Product.countDocuments({
+      subcategory: id,
+      isActive: true,
+      stock: { $gt: 0 },
+    });
+    if (assignedInStockProducts > 0) {
+      const { response, statusCode } = errorResponse(
+        `Subcategory cannot be deleted because ${assignedInStockProducts} in-stock product is assigned to it`,
+        undefined,
+        400
+      );
       return res.status(statusCode).json(response);
     }
 

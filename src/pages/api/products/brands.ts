@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/config/database';
 import Brand from '@/models/Brand';
+import Product from '@/models/Product';
 import { authenticate } from '@/middleware/auth';
 import { errorResponse, successResponse, formatErrorMessage } from '@/utils/response';
 import { validateInput, brandSchema, brandUpdateSchema } from '@/utils/productValidation';
@@ -135,6 +136,20 @@ async function handleDeleteBrand(req: NextApiRequest, res: NextApiResponse<ApiRe
     const { id } = req.query;
     if (!id) {
       const { response, statusCode } = errorResponse('Brand ID is required', undefined, 400);
+      return res.status(statusCode).json(response);
+    }
+
+    const assignedInStockProducts = await Product.countDocuments({
+      brand: id,
+      isActive: true,
+      stock: { $gt: 0 },
+    });
+    if (assignedInStockProducts > 0) {
+      const { response, statusCode } = errorResponse(
+        `Brand cannot be deleted because ${assignedInStockProducts} in-stock product is assigned to it`,
+        undefined,
+        400
+      );
       return res.status(statusCode).json(response);
     }
 

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/config/database';
 import Category from '@/models/Category';
+import Product from '@/models/Product';
 import { authenticate } from '@/middleware/auth';
 import { errorResponse, successResponse, formatErrorMessage } from '@/utils/response';
 import { validateInput, categorySchema, categoryUpdateSchema } from '@/utils/productValidation';
@@ -138,6 +139,20 @@ async function handleDeleteCategory(req: NextApiRequest, res: NextApiResponse<Ap
     const { id } = req.query;
     if (!id) {
       const { response, statusCode } = errorResponse('Category ID is required', undefined, 400);
+      return res.status(statusCode).json(response);
+    }
+
+    const assignedInStockProducts = await Product.countDocuments({
+      category: id,
+      isActive: true,
+      stock: { $gt: 0 },
+    });
+    if (assignedInStockProducts > 0) {
+      const { response, statusCode } = errorResponse(
+        `Category cannot be deleted because ${assignedInStockProducts} in-stock product is assigned to it`,
+        undefined,
+        400
+      );
       return res.status(statusCode).json(response);
     }
 
