@@ -83,7 +83,6 @@ function POSContent() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [taxSettings, setTaxSettings] = useState({
     taxEnabled: false,
     defaultTaxRate: 10,
@@ -551,11 +550,15 @@ function POSContent() {
 
   const getProductImage = (product: Product) => product.image || product.images?.[0] || '';
 
-  // Get unique categories
-  const categories = Array.from(
-    new Set(products.map((p) => getCategoryName(p.category)).filter(Boolean))
-  ) as string[];
-  const popularCategories = categories.slice(0, 5);
+  // Get unique categories with product counts
+  const categoryCounts = products.reduce<Record<string, number>>((counts, product) => {
+    const categoryName = getCategoryName(product.category);
+    if (!categoryName) return counts;
+
+    counts[categoryName] = (counts[categoryName] || 0) + 1;
+    return counts;
+  }, {});
+  const categories = Object.entries(categoryCounts).map(([name, count]) => ({ name, count }));
 
   // Filter products
   const filteredProducts = products.filter((p) => {
@@ -621,7 +624,7 @@ function POSContent() {
                 </div>
 
                 {/* Category Quick Filter */}
-                {popularCategories.length > 0 && (
+                {categories.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedCategory('')}
@@ -633,27 +636,23 @@ function POSContent() {
                     >
                       All ({products.length})
                     </button>
-                    {popularCategories.map((cat) => (
+                    {categories.map((category) => (
                       <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
+                        key={category.name}
+                        onClick={() =>
+                          setSelectedCategory(
+                            selectedCategory === category.name ? '' : category.name
+                          )
+                        }
                         className={`min-h-10 rounded-full px-4 text-sm font-semibold transition ${
-                          selectedCategory === cat
+                          selectedCategory === category.name
                             ? 'bg-sky-600 text-white shadow-sm shadow-sky-200'
                             : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        {cat}
+                        {category.name} ({category.count})
                       </button>
                     ))}
-                    {categories.length > popularCategories.length && (
-                      <button
-                        onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-                        className="min-h-10 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                      >
-                        More...
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
