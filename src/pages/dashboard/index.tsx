@@ -254,6 +254,42 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+
+          {/* Total Stock Price */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Total Stock Price
+                </p>
+                <p className="text-2xl font-bold text-slate-900 mt-2">
+                  ৳{(kpis.totalStockValue || 0).toFixed(0)}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Current stock selling value</p>
+              </div>
+              <div className="rounded-lg bg-emerald-100 p-2 flex-shrink-0">
+                <Package className="h-5 w-5 text-emerald-500" />
+              </div>
+            </div>
+          </div>
+
+          {/* Supplier Payable */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Supplier Payable
+                </p>
+                <p className="text-2xl font-bold text-slate-900 mt-2">
+                  ৳{(kpis.totalSupplierPayable || 0).toFixed(0)}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Outstanding supplier payments</p>
+              </div>
+              <div className="rounded-lg bg-rose-100 p-2 flex-shrink-0">
+                <DollarSign className="h-5 w-5 text-rose-500" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Charts Section */}

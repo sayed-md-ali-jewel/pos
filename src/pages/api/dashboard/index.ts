@@ -5,6 +5,7 @@ import Product from '@/models/Product';
 import Customer from '@/models/Customer';
 import User from '@/models/User';
 import Expense from '@/models/Expense';
+import Supplier from '@/models/Supplier';
 import { authenticate } from '@/middleware/auth';
 import { errorResponse, successResponse, formatErrorMessage } from '@/utils/response';
 import { ApiResponse } from '@/types';
@@ -95,6 +96,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     // Pending Orders
     const pendingOrdersCount = await Sale.countDocuments({ status: 'pending' });
+
+    // Total price of current stock
+    const stockValueAgg = await Product.aggregate([
+      { $match: { isActive: true, stock: { $gt: 0 } } },
+      {
+        $group: {
+          _id: null,
+          totalStockValue: { $sum: { $multiply: ['$stock', '$price'] } },
+        },
+      },
+    ]);
+    const totalStockValue = stockValueAgg.length > 0 ? stockValueAgg[0].totalStockValue : 0;
+
+    // Total amount payable to suppliers
+    const supplierPayableAgg = await Supplier.aggregate([
+      { $match: { isActive: true, dueAmount: { $gt: 0 } } },
+      { $group: { _id: null, totalSupplierPayable: { $sum: '$dueAmount' } } },
+    ]);
+    const totalSupplierPayable =
+      supplierPayableAgg.length > 0 ? supplierPayableAgg[0].totalSupplierPayable : 0;
 
     // Total Due
     // Customer records hold manually entered previous due plus sale-created due.
@@ -395,6 +416,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         profitPeriod,
         monthlyExpenses,
         totalDue,
+        totalStockValue,
+        totalSupplierPayable,
         pendingOrdersCount,
         lowStockCount,
       },
