@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const purchases = await Purchase.find({ supplierId: id }).sort({ createdAt: -1 });
 
     const purchaseEntries = purchases.map((p) => ({
+      purchaseId: p._id,
       date: p.createdAt,
       reference: p.purchaseNumber,
       type: 'Purchase',
@@ -38,6 +39,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       balance: p.dueAmount,
       status: p.status,
       note: p.notes || '',
+      items: p.items.map((item: any) => ({
+        productId: item.productId,
+        productName: item.productName,
+        costPrice: item.costPrice,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+      })),
     }));
 
     const payments = await SupplierPayment.find({ supplierId: id }).sort({ paymentDate: -1 });

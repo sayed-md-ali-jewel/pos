@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import {
   AlertTriangle,
   History,
@@ -46,7 +47,7 @@ interface InventorySummary {
 interface ProductPurchase {
   _id: string;
   purchaseNumber: string;
-  supplier?: { name: string; phone?: string; supplierCode?: string };
+  supplier?: { _id: string; name: string; phone?: string; supplierCode?: string };
   date: string;
   status: string;
   paymentStatus: string;
@@ -260,9 +261,12 @@ function DetailDrawer({ product, onClose }: { product: Product; onClose: () => v
                     <div>
                       <div className="flex items-center gap-1.5">
                         <Hash size={11} className="text-slate-400" />
-                        <span className="text-xs font-bold font-mono text-slate-700">
+                        <Link
+                          href={`/inventory/purchases/${p._id}`}
+                          className="text-xs font-bold font-mono text-slate-700 transition hover:text-sky-700"
+                        >
                           {p.purchaseNumber}
-                        </span>
+                        </Link>
                       </div>
                       <div className="mt-0.5 flex items-center gap-1">
                         <Calendar size={10} className="text-slate-400" />
@@ -302,7 +306,16 @@ function DetailDrawer({ product, onClose }: { product: Product; onClose: () => v
                   <div className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-1 text-slate-500">
                       <Truck size={10} />
-                      <span className="font-medium">{p.supplier?.name ?? '—'}</span>
+                      {p.supplier?._id ? (
+                        <Link
+                          href={`/inventory/suppliers/${p.supplier._id}`}
+                          className="font-medium transition hover:text-sky-700"
+                        >
+                          {p.supplier.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{p.supplier?.name ?? '—'}</span>
+                      )}
                     </div>
                     <div className={`font-bold ${payStatusColor(p.paymentStatus)}`}>
                       {p.paymentStatus === 'paid'
@@ -357,6 +370,7 @@ function DetailDrawer({ product, onClose }: { product: Product; onClose: () => v
 }
 
 function InventoryContent() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -417,6 +431,34 @@ function InventoryContent() {
   useEffect(() => {
     fetchInventory();
   }, [fetchInventory]);
+
+  useEffect(() => {
+    const productId = router.query.productId;
+    if (!router.isReady || !productId || Array.isArray(productId)) return;
+
+    const fetchProductDetail = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`/api/products?id=${productId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.success) {
+          setSelectedProduct(res.data.data);
+        }
+      } catch {
+        toast.error('Failed to load product details');
+      }
+    };
+
+    fetchProductDetail();
+  }, [router.isReady, router.query.productId]);
+
+  const closeProductDetail = () => {
+    setSelectedProduct(null);
+    if (router.query.productId) {
+      router.replace('/inventory', undefined, { shallow: true });
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -679,9 +721,7 @@ function InventoryContent() {
       </div>
 
       {/* Detail Drawer */}
-      {selectedProduct && (
-        <DetailDrawer product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      )}
+      {selectedProduct && <DetailDrawer product={selectedProduct} onClose={closeProductDetail} />}
     </MainLayout>
   );
 }

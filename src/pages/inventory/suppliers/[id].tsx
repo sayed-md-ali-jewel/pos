@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   Receipt,
   BookOpen,
+  Package,
   X,
   Hash,
   Calendar,
@@ -423,7 +424,16 @@ function SupplierDetailsContent() {
                       {purchases.map((p: any, i: number) => (
                         <tr key={i} className="hover:bg-slate-50 transition">
                           <td className="px-3 py-3 text-xs font-bold font-mono text-sky-600">
-                            {p.reference}
+                            {p.purchaseId ? (
+                              <Link
+                                href={`/inventory/purchases/${p.purchaseId}`}
+                                className="transition hover:text-sky-800"
+                              >
+                                {p.reference}
+                              </Link>
+                            ) : (
+                              p.reference
+                            )}
                           </td>
                           <td className="px-3 py-3 text-xs text-slate-500">{fmtDate(p.date)}</td>
                           <td className="px-3 py-3 text-right text-xs font-bold text-slate-800">
@@ -442,6 +452,33 @@ function SupplierDetailsContent() {
                       ))}
                     </tbody>
                   </table>
+                  <div className="mt-4 space-y-2">
+                    {purchases.map((p: any, i: number) =>
+                      p.items?.length ? (
+                        <div
+                          key={`${p.reference}-items-${i}`}
+                          className="rounded-xl bg-slate-50 p-3"
+                        >
+                          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            {p.reference} products
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {p.items.map((item: any) => (
+                              <Link
+                                key={`${p.reference}-${item.productId}`}
+                                href={`/inventory?productId=${item.productId}`}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
+                              >
+                                <Package size={11} />
+                                {item.productName}
+                                <span className="text-slate-400">x{item.quantity}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -637,9 +674,18 @@ function SupplierDetailsContent() {
                               {/* Type + Ref */}
                               <div className="min-w-[130px]">
                                 <TypeChip type={e.type} />
-                                <p className="mt-1 font-mono text-[12px] font-bold text-sky-700">
-                                  {e.reference}
-                                </p>
+                                {e.purchaseId ? (
+                                  <Link
+                                    href={`/inventory/purchases/${e.purchaseId}`}
+                                    className="mt-1 block font-mono text-[12px] font-bold text-sky-700 transition hover:text-sky-900"
+                                  >
+                                    {e.reference}
+                                  </Link>
+                                ) : (
+                                  <p className="mt-1 font-mono text-[12px] font-bold text-sky-700">
+                                    {e.reference}
+                                  </p>
+                                )}
                               </div>
 
                               {/* Debit (Purchase amount) */}
@@ -687,6 +733,27 @@ function SupplierDetailsContent() {
                                   <p className="text-[12px] text-slate-600 truncate max-w-[200px]">
                                     {e.note}
                                   </p>
+                                </div>
+                              )}
+
+                              {e.items?.length > 0 && (
+                                <div className="min-w-full">
+                                  <p className="mb-1.5 text-[10px] font-semibold uppercase text-slate-400">
+                                    Products
+                                  </p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {e.items.map((item: any) => (
+                                      <Link
+                                        key={`${e.reference}-${item.productId}`}
+                                        href={`/inventory?productId=${item.productId}`}
+                                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
+                                      >
+                                        <Package size={10} />
+                                        {item.productName}
+                                        <span className="text-slate-400">x{item.quantity}</span>
+                                      </Link>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
 
