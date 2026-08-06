@@ -835,29 +835,33 @@ function POSContent() {
                   {filteredProducts.length !== products.length ? ` (${products.length} total)` : ''}
                 </p>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setProductPage((page) => Math.max(1, page - 1))}
-                    disabled={productPage <= 1}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Previous product page"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span className="min-w-24 text-center text-sm font-bold text-slate-700">
-                    {productPage} / {totalProductPages}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setProductPage((page) => Math.min(totalProductPages, page + 1))}
-                    disabled={productPage >= totalProductPages}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Next product page"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+                {totalProductPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setProductPage((page) => Math.max(1, page - 1))}
+                      disabled={productPage <= 1}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Previous product page"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="min-w-24 text-center text-sm font-bold text-slate-700">
+                      {productPage} / {totalProductPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProductPage((page) => Math.min(totalProductPages, page + 1))
+                      }
+                      disabled={productPage >= totalProductPages}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Next product page"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
