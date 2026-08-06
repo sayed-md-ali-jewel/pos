@@ -51,8 +51,8 @@ function PurchaseContent() {
 
   // New item form
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [qty, setQty] = useState(1);
-  const [costPrice, setCostPrice] = useState(0);
+  const [qty, setQty] = useState('1');
+  const [costPrice, setCostPrice] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -85,7 +85,16 @@ function PurchaseContent() {
   };
 
   const handleAddItem = () => {
-    if (!selectedProductId || qty <= 0 || costPrice <= 0) {
+    const qtyValue = Number(qty);
+    const costPriceValue = Number(costPrice);
+
+    if (
+      !selectedProductId ||
+      !Number.isFinite(qtyValue) ||
+      !Number.isFinite(costPriceValue) ||
+      qtyValue <= 0 ||
+      costPriceValue <= 0
+    ) {
       toast.error('Please select a product and enter valid quantity/price');
       return;
     }
@@ -104,16 +113,16 @@ function PurchaseContent() {
       {
         productId: product._id,
         productName: product.name,
-        quantity: Number(qty),
-        costPrice: Number(costPrice),
-        subtotal: Number(qty) * Number(costPrice),
+        quantity: qtyValue,
+        costPrice: costPriceValue,
+        subtotal: qtyValue * costPriceValue,
       },
     ]);
 
     // Reset item form
     setSelectedProductId('');
-    setQty(1);
-    setCostPrice(0);
+    setQty('1');
+    setCostPrice('');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -145,9 +154,10 @@ function PurchaseContent() {
     return { updateNeeded, suggestedCost: newCost, suggestedPrice };
   };
 
+  const costPriceValue = Number(costPrice);
   const suggestedPricing =
-    selectedProduct && costPrice > 0
-      ? getSuggestedProductPricing(selectedProduct, costPrice)
+    selectedProduct && costPriceValue > 0
+      ? getSuggestedProductPricing(selectedProduct, costPriceValue)
       : null;
 
   const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
@@ -250,7 +260,7 @@ function PurchaseContent() {
                     type="number"
                     min="1"
                     value={qty}
-                    onChange={(e) => setQty(Number(e.target.value))}
+                    onChange={(e) => setQty(e.target.value)}
                   />
                 </div>
                 <div>
@@ -260,7 +270,7 @@ function PurchaseContent() {
                     min="0"
                     step="0.01"
                     value={costPrice}
-                    onChange={(e) => setCostPrice(Number(e.target.value))}
+                    onChange={(e) => setCostPrice(e.target.value)}
                   />
                 </div>
               </div>
