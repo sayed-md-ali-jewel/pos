@@ -8,6 +8,8 @@ import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import {
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Minus,
   PackageOpen,
@@ -51,6 +53,9 @@ interface Customer {
   totalPurchased?: number;
 }
 
+const PRODUCT_PAGE_SIZE_OPTIONS = [16, 32, 48, 96];
+const DEFAULT_PRODUCT_PAGE_SIZE = 16;
+
 export default function POSPage() {
   return (
     <ProtectedRoute requiredRole={['cashier', 'admin', 'manager']}>
@@ -75,6 +80,12 @@ function POSContent() {
   const [saveWalkinCustomer, setSaveWalkinCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [productsPerPage, setProductsPerPage] = useState(DEFAULT_PRODUCT_PAGE_SIZE);
+  const [customProductsPerPage, setCustomProductsPerPage] = useState(
+    String(DEFAULT_PRODUCT_PAGE_SIZE)
+  );
+  const [isCustomProductsPerPage, setIsCustomProductsPerPage] = useState(false);
+  const [productPage, setProductPage] = useState(1);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'cheque' | 'mobile'>('cash');
@@ -148,7 +159,7 @@ function POSContent() {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/products?limit=100', {
+      const response = await axios.get('/api/products?limit=5000', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -569,6 +580,45 @@ function POSContent() {
     const matchesCategory = !selectedCategory || getCategoryName(p.category) === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+  const totalProductPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+  const productPageStart = (productPage - 1) * productsPerPage;
+  const paginatedProducts = filteredProducts.slice(
+    productPageStart,
+    productPageStart + productsPerPage
+  );
+  const visibleProductStart = filteredProducts.length === 0 ? 0 : productPageStart + 1;
+  const visibleProductEnd = Math.min(productPageStart + productsPerPage, filteredProducts.length);
+
+  useEffect(() => {
+    setProductPage(1);
+  }, [searchQuery, selectedCategory, productsPerPage]);
+
+  useEffect(() => {
+    if (productPage > totalProductPages) {
+      setProductPage(totalProductPages);
+    }
+  }, [productPage, totalProductPages]);
+
+  const handleProductsPerPageChange = (value: string) => {
+    if (value === 'custom') {
+      setIsCustomProductsPerPage(true);
+      return;
+    }
+
+    const nextValue = Number(value);
+    setIsCustomProductsPerPage(false);
+    setProductsPerPage(nextValue);
+    setCustomProductsPerPage(String(nextValue));
+  };
+
+  const handleCustomProductsPerPageChange = (value: string) => {
+    setCustomProductsPerPage(value);
+    const nextValue = Math.max(1, Math.floor(Number(value) || 0));
+
+    if (nextValue > 0) {
+      setProductsPerPage(nextValue);
+    }
+  };
 
   return (
     <MainLayout title="POS - Point of Sale">
@@ -603,24 +653,57 @@ function POSContent() {
             <div className="flex min-w-0 flex-col gap-4 overflow-hidden">
               {/* Enhanced Search & Filters */}
               <div className="space-y-3">
-                <div className="relative">
-                  <Search
-                    size={20}
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search by name or scan barcode..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleSearchKeyDown}
-                    className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-12 text-base font-medium text-slate-900 shadow-sm shadow-slate-200/70 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-                  />
-                  <Search
-                    size={22}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
+                <div className="flex flex-col gap-3 lg:flex-row">
+                  <div className="relative min-w-0 flex-1">
+                    <Search
+                      size={20}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search by name or scan barcode..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
+                      className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-12 text-base font-medium text-slate-900 shadow-sm shadow-slate-200/70 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    />
+                    <Search
+                      size={22}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex shrink-0 gap-2">
+                    <select
+                      value={
+                        isCustomProductsPerPage ||
+                        !PRODUCT_PAGE_SIZE_OPTIONS.includes(productsPerPage)
+                          ? 'custom'
+                          : String(productsPerPage)
+                      }
+                      onChange={(e) => handleProductsPerPageChange(e.target.value)}
+                      className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm shadow-slate-200/70 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                    >
+                      {PRODUCT_PAGE_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} per page
+                        </option>
+                      ))}
+                      <option value="custom">Custom</option>
+                    </select>
+
+                    {isCustomProductsPerPage && (
+                      <input
+                        type="number"
+                        min="1"
+                        value={customProductsPerPage}
+                        onChange={(e) => handleCustomProductsPerPageChange(e.target.value)}
+                        className="h-14 w-28 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm shadow-slate-200/70 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+                        aria-label="Custom products per page"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* Category Quick Filter */}
@@ -661,7 +744,7 @@ function POSContent() {
               <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/70">
                 {filteredProducts.length > 0 ? (
                   <div className="grid auto-rows-fr grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-                    {filteredProducts.map((product) => (
+                    {paginatedProducts.map((product) => (
                       <button
                         key={product._id}
                         onClick={() => handleAddToCart(product)}
@@ -745,9 +828,37 @@ function POSContent() {
               </div>
 
               {/* Product Count */}
-              <p className="text-xs text-slate-500 text-center font-medium">
-                Showing {filteredProducts.length} of {products.length} products
-              </p>
+              <div className="flex flex-col items-center justify-between gap-3 text-xs font-medium text-slate-500 sm:flex-row">
+                <p>
+                  Showing {visibleProductStart}-{visibleProductEnd} of {filteredProducts.length}{' '}
+                  products
+                  {filteredProducts.length !== products.length ? ` (${products.length} total)` : ''}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setProductPage((page) => Math.max(1, page - 1))}
+                    disabled={productPage <= 1}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Previous product page"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="min-w-24 text-center text-sm font-bold text-slate-700">
+                    {productPage} / {totalProductPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setProductPage((page) => Math.min(totalProductPages, page + 1))}
+                    disabled={productPage >= totalProductPages}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Next product page"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Right Section: Cart & Actions */}
