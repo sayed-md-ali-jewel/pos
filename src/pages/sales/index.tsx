@@ -53,8 +53,8 @@ interface Customer {
   totalPurchased?: number;
 }
 
-const PRODUCT_PAGE_SIZE_OPTIONS = [16, 32, 48, 96];
-const DEFAULT_PRODUCT_PAGE_SIZE = 16;
+const PRODUCT_PAGE_SIZE_OPTIONS = [15, 30, 45, 60, 100];
+const DEFAULT_PRODUCT_PAGE_SIZE = 15;
 
 export default function POSPage() {
   return (
