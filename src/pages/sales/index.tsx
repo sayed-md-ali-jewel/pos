@@ -162,6 +162,7 @@ function POSContent() {
       const response = await axios.get('/api/products?limit=5000', {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Fetched products from server', response.data);
 
       if (response.data.success) {
         setProducts(response.data.data.products);
